@@ -1,0 +1,144 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class JoyStick : MonoBehaviour
+{
+    [SerializeField] private RectTransform Pad;
+    [SerializeField] private Vector3 _StartPos;
+    [SerializeField] private float _dragPos = 175;
+    [SerializeField] private float _TouchId = -1;
+    [SerializeField] private bool IsTouch = false;
+
+    private Mouse player;
+
+    void Start()
+    {
+        Pad = GetComponent<RectTransform>();
+        player = GameObject.FindWithTag("Player").GetComponent<Mouse>();
+        _StartPos = Pad.position;
+    }
+
+    public void ButtonDown()
+    {
+        IsTouch = true;
+    }
+
+    public void ButtonUp()
+    {
+        IsTouch = false;
+        HandleInput(_StartPos);
+    }
+
+    void FixedUpdate()
+    {
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            HandleTouchInput();
+        }
+
+        if (Application.platform == RuntimePlatform.WindowsEditor)
+        {
+            HandleInput(Input.mousePosition);
+        }
+    }
+
+    void HandleTouchInput()
+    {
+        int i = 0;
+
+        if (Input.touchCount > 0)
+        {
+            foreach (Touch touch in Input.touches)
+            {
+                i++;
+                Vector3 touchPos = new Vector3(touch.position.x, touch.position.y);
+
+                if (touch.phase == TouchPhase.Began)
+                {
+                    if (touchPos.x < (_StartPos.x + _dragPos))
+                    {
+                        _TouchId = i;
+                    }
+
+                    if (touchPos.y < (_StartPos.y + _dragPos))
+                    {
+                        _TouchId = i;
+                    }
+                }
+
+                if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
+                {
+                    if (_TouchId == i)
+                    {
+                        HandleInput(touchPos);
+                    }
+                }
+
+                if (touch.phase == TouchPhase.Ended)
+                {
+                    if (_TouchId == i)
+                    {
+                        _TouchId = -1;
+                    }
+                }
+            }
+        } 
+    }
+    void HandleInput(Vector3 input)
+    {
+        if (IsTouch)
+        {
+            Vector3 differVector = (input - _StartPos);
+
+            if (differVector.sqrMagnitude > ((_dragPos * _dragPos)))
+            {
+                differVector.Normalize();
+                Pad.position = _StartPos + differVector * _dragPos;
+            }
+
+            else
+            {
+                Pad.position = input;
+            }
+        }
+
+        else
+        {
+            Pad.position = _StartPos;
+        }
+
+        Vector3 differ = Pad.position - _StartPos;
+        Vector3 NomalDiffer = new Vector3(differ.x / _dragPos, differ.y / _dragPos);
+
+        if (player != null)
+        {
+            player.OnStickPos(NomalDiffer);
+        }
+    }
+}
+
+
+
+
+
+ void Update()
+ {
+     if (animator != null)
+     {
+         animator.SetFloat("Speed", (h * h + v * v));
+
+         if (rb != null)
+         {
+             Vector3 Speed = rb.velocity;
+             Speed.x = 4 * h;
+             Speed.z = 4 * v;
+             rb.velocity = Speed;
+
+             if (h != 0f &&  v != 0f)
+             {
+                 transform.rotation = Quaternion.LookRotation(new Vector3(h, 0f, v));
+             }
+         }
+     }
+ }
